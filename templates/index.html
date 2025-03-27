@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Student Management System</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+        th, td {
+            border: 1px solid #ddd;
+            padding: 8px;
+            text-align: left;
+        }
+        th {
+            background-color: #f2f2f2;
+        }
+        tr:nth-child(even) {
+            background-color: #f9f9f9;
+        }
+        .form-group {
+            margin-bottom: 15px;
+        }
+        label {
+            display: inline-block;
+            width: 120px;
+        }
+        input {
+            padding: 5px;
+            width: 200px;
+        }
+        button {
+            padding: 5px 15px;
+            cursor: pointer;
+        }
+        .action-buttons {
+            display: flex;
+            gap: 5px;
+        }
+    </style>
+</head>
+<body>
+    <h1>Student Management System</h1>
+    
+    <h2>Add/Edit Student</h2>
+    <form id="studentForm" action="/api/students" method="POST">
+        <input type="hidden" id="student_id" name="student_id">
+        <div class="form-group">
+            <label for="first_name">First Name:</label>
+            <input type="text" id="first_name" name="first_name" required>
+        </div>
+        <div class="form-group">
+            <label for="last_name">Last Name:</label>
+            <input type="text" id="last_name" name="last_name" required>
+        </div>
+        <div class="form-group">
+            <label for="dob">Date of Birth:</label>
+            <input type="date" id="dob" name="dob" required>
+        </div>
+        <div class="form-group">
+            <label for="amount_due">Amount Due:</label>
+            <input type="number" step="0.01" id="amount_due" name="amount_due" required>
+        </div>
+        <button type="submit">Save</button>
+        <button type="button" onclick="resetForm()">Cancel</button>
+    </form>
+    
+    <h2>Student List</h2>
+    <table>
+        <thead>
+            <tr>
+                <th>ID</th>
+                <th>First Name</th>
+                <th>Last Name</th>
+                <th>Date of Birth</th>
+                <th>Amount Due</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for student in students %}
+            <tr>
+                <td>{{ student.student_id }}</td>
+                <td>{{ student.first_name }}</td>
+                <td>{{ student.last_name }}</td>
+                <td>{{ student.dob.strftime('%Y-%m-%d') }}</td>
+                <td>{{ "%.2f"|format(student.amount_due) }}</td>
+                <td class="action-buttons">
+                    <button onclick="editStudent({{ student.student_id }})">Edit</button>
+                    <button onclick="deleteStudent({{ student.student_id }})">Delete</button>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+
+    <script>
+        function editStudent(studentId) {
+            fetch(`/api/students/${studentId}`)
+                .then(response => response.json())
+                .then(student => {
+                    document.getElementById('student_id').value = student.student_id;
+                    document.getElementById('first_name').value = student.first_name;
+                    document.getElementById('last_name').value = student.last_name;
+                    document.getElementById('dob').value = student.dob;
+                    document.getElementById('amount_due').value = student.amount_due;
+                    
+                    // Change form method to PUT
+                    const form = document.getElementById('studentForm');
+                    form.method = 'POST';
+                    form.action = `/api/students/${studentId}`;
+                    
+                    // Add hidden input for method override
+                    if (!document.querySelector('input[name="_method"]')) {
+                        const methodInput = document.createElement('input');
+                        methodInput.type = 'hidden';
+                        methodInput.name = '_method';
+                        methodInput.value = 'PUT';
+                        form.appendChild(methodInput);
+                    }
+                });
+        }
+
+        function deleteStudent(studentId) {
+            if (confirm('Are you sure you want to delete this student?')) {
+                fetch(`/api/students/${studentId}`, {
+                    method: 'DELETE'
+                })
+                .then(() => {
+                    window.location.reload();
+                });
+            }
+        }
+
+        function resetForm() {
+            document.getElementById('studentForm').reset();
+            document.getElementById('student_id').value = '';
+            document.getElementById('studentForm').method = 'POST';
+            document.getElementById('studentForm').action = '/api/students';
+            
+            const methodInput = document.querySelector('input[name="_method"]');
+            if (methodInput) {
+                methodInput.remove();
+            }
+        }
+
+        function editStudent(studentId) {
+    fetch(`/api/students/${studentId}`)
+        .then(response => response.json())
+        .then(student => {
+            document.getElementById('student_id').value = student.student_id;
+            document.getElementById('first_name').value = student.first_name;
+            document.getElementById('last_name').value = student.last_name;
+            document.getElementById('dob').value = student.dob;
+            document.getElementById('amount_due').value = student.amount_due;
+            
+            // Update form action
+            document.getElementById('studentForm').action = `/api/students/${studentId}`;
+        });
+}
+
+function resetForm() {
+    document.getElementById('studentForm').reset();
+    document.getElementById('student_id').value = '';
+    document.getElementById('studentForm').action = '/api/students';
+}
+
+document.getElementById('studentForm').addEventListener('submit', function(e) {
+    e.preventDefault();
+    const formData = new FormData(this);
+    const studentId = document.getElementById('student_id').value;
+    const url = studentId ? `/api/students/${studentId}` : '/api/students';
+
+    fetch(url, {
+        method: 'POST',
+        body: formData
+    })
+    .then(response => {
+        if (response.redirected) {
+            window.location.href = response.url;
+        }
+    });
+});
+    </script>
+</body>
+</html>
